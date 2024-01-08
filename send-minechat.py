@@ -1,18 +1,27 @@
 import asyncio
+import logging
 
 import configargparse
 
 
+logger = logging.getLogger('sender')
+logging.basicConfig(level=logging.DEBUG)
+
+
 async def server():
     reader, writer = await asyncio.open_connection(args.host, args.port)
-    await reader.readline()
+    prompt = await reader.readline()
+    logger.debug(prompt.decode())
+
     message = args.token + '\n'
     writer.write(message.encode())
     await writer.drain()
+    logger.debug(message)
 
     message = "Hello world!" + '\n\n'
     writer.write(message.encode())
     await writer.drain()
+    logger.debug(message)
 
 
 def prepare_args():
