@@ -1,8 +1,8 @@
 import asyncio
+import json
 import logging
 
 import configargparse
-
 
 logger = logging.getLogger('sender')
 logging.basicConfig(level=logging.DEBUG)
@@ -17,6 +17,12 @@ async def server():
     writer.write(message.encode())
     await writer.drain()
     logger.debug(message)
+
+    prompt = await reader.readline()
+    logger.debug(prompt.decode())
+    if json.loads(prompt.decode()) is None:
+        print("Неизвестный токен. Проверьте его или зарегистрируйте заново.")
+        return
 
     message = "Hello world!" + '\n\n'
     writer.write(message.encode())
