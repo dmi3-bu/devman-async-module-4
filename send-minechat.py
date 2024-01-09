@@ -16,7 +16,9 @@ async def server():
     if args.token is None:
         await register(reader, writer)
     else:
-        await authorise(reader, writer)
+        success = await authorise(reader, writer)
+        if not success:
+            return
 
     message = sanitize_input(args.message) + '\n'
     await submit_message(message, writer)
@@ -45,7 +47,9 @@ async def authorise(reader, writer):
     logger.debug(json_response.decode())
     if json.loads(json_response.decode()) is None:
         print("Неизвестный токен. Проверьте его или зарегистрируйте заново.")
-        return
+        return False
+
+    return True
 
 
 async def submit_message(text, writer):
@@ -60,16 +64,16 @@ def sanitize_input(text):
 
 def prepare_args():
     parser = configargparse.ArgParser(default_config_files=['send_config.ini'])
+    parser.add_argument('-m', '--message', type=str, required=True,
+                        help='message text to send')
+    parser.add_argument('-t', '--token', type=str,
+                        help='token of existing user')
     parser.add_argument('--host', type=str, default='minechat.dvmn.org',
                         help='host')
     parser.add_argument('-p', '--port', type=int, default=5050,
                         help='port')
-    parser.add_argument('-t', '--token', type=str,
-                        help='token of existing user')
     parser.add_argument('-n', '--nickname', type=str, default="newbie",
                         help='nickname for a new user')
-    parser.add_argument('-m', '--message', type=str, required=True,
-                        help='message text to send')
     return parser.parse_args()
 
 
