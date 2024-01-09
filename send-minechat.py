@@ -18,19 +18,17 @@ async def server():
     else:
         await authorise(reader, writer)
 
-    message = "Hello world!" + '\n\n'
+    message = sanitize_input(args.message) + '\n'
     await submit_message(message, writer)
 
 
 async def register(reader, writer):
-    message = '\n'
-    await submit_message(message, writer)
+    await submit_message('', writer)
 
     new_user_prompt = await reader.readline()
     logger.debug(new_user_prompt.decode())
 
-    nickname = input('Введите ник нового пользователя:') + '\n'
-
+    nickname = sanitize_input(args.nickname)
     await submit_message(nickname, writer)
 
     json_response = await reader.readline()
@@ -41,8 +39,7 @@ async def register(reader, writer):
 
 
 async def authorise(reader, writer):
-    message = args.token + '\n'
-    await submit_message(message, writer)
+    await submit_message(args.token, writer)
 
     json_response = await reader.readline()
     logger.debug(json_response.decode())
@@ -52,9 +49,13 @@ async def authorise(reader, writer):
 
 
 async def submit_message(text, writer):
-    writer.write(text.encode())
+    writer.write(f'{text}\n'.encode())
     await writer.drain()
     logger.debug(text)
+
+
+def sanitize_input(text):
+    return text.replace('\n', '')
 
 
 def prepare_args():
@@ -64,7 +65,11 @@ def prepare_args():
     parser.add_argument('-p', '--port', type=int, default=5050,
                         help='port')
     parser.add_argument('-t', '--token', type=str,
-                        help='token')
+                        help='token of existing user')
+    parser.add_argument('-n', '--nickname', type=str, default="newbie",
+                        help='nickname for a new user')
+    parser.add_argument('-m', '--message', type=str, required=True,
+                        help='message text to send')
     return parser.parse_args()
 
 
