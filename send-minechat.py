@@ -10,44 +10,51 @@ logging.basicConfig(level=logging.DEBUG)
 
 async def server():
     reader, writer = await asyncio.open_connection(args.host, args.port)
-    prompt = await reader.readline()
-    logger.debug(prompt.decode())
+    greeting_prompt = await reader.readline()
+    logger.debug(greeting_prompt.decode())
 
     if args.token is None:
-        message = '\n'
-        writer.write(message.encode())
-        await writer.drain()
-        logger.debug(message)
-
-        new_user_prompt = await reader.readline()
-        logger.debug(new_user_prompt.decode())
-
-        nickname = input('Введите ник нового пользователя:') + '\n'
-        writer.write(nickname.encode())
-        await writer.drain()
-        logger.debug(nickname)
-
-        json_response = await reader.readline()
-        logger.debug(json_response.decode())
-        account_hash = json.loads(json_response.decode())["account_hash"]
-        with open('send_config.ini', 'a') as f:
-            f.write(f'\ntoken={account_hash}\n')
+        await register(reader, writer)
     else:
-        message = args.token + '\n'
-        writer.write(message.encode())
-        await writer.drain()
-        logger.debug(message)
-
-        json_response = await reader.readline()
-        logger.debug(json_response.decode())
-        if json.loads(json_response.decode()) is None:
-            print("Неизвестный токен. Проверьте его или зарегистрируйте заново.")
-            return
+        await authorise(reader, writer)
 
     message = "Hello world!" + '\n\n'
-    writer.write(message.encode())
+    await submit_message(message, writer)
+
+
+async def register(reader, writer):
+    message = '\n'
+    await submit_message(message, writer)
+
+    new_user_prompt = await reader.readline()
+    logger.debug(new_user_prompt.decode())
+
+    nickname = input('Введите ник нового пользователя:') + '\n'
+
+    await submit_message(nickname, writer)
+
+    json_response = await reader.readline()
+    logger.debug(json_response.decode())
+    account_hash = json.loads(json_response.decode())["account_hash"]
+    with open('send_config.ini', 'a') as f:
+        f.write(f'\ntoken={account_hash}\n')
+
+
+async def authorise(reader, writer):
+    message = args.token + '\n'
+    await submit_message(message, writer)
+
+    json_response = await reader.readline()
+    logger.debug(json_response.decode())
+    if json.loads(json_response.decode()) is None:
+        print("Неизвестный токен. Проверьте его или зарегистрируйте заново.")
+        return
+
+
+async def submit_message(text, writer):
+    writer.write(text.encode())
     await writer.drain()
-    logger.debug(message)
+    logger.debug(text)
 
 
 def prepare_args():
