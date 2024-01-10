@@ -8,20 +8,25 @@ logger = logging.getLogger('sender')
 logging.basicConfig(level=logging.DEBUG)
 
 
-async def server():
+async def send_to_chat():
     reader, writer = await asyncio.open_connection(args.host, args.port)
-    greeting_prompt = await reader.readline()
-    logger.debug(greeting_prompt.decode())
+    try:
+        greeting_prompt = await reader.readline()
+        logger.debug(greeting_prompt.decode())
 
-    if args.token is None:
-        await register(reader, writer)
-    else:
-        success = await authorise(reader, writer)
-        if not success:
-            return
+        if args.token is None:
+            await register(reader, writer)
+        else:
+            success = await authorise(reader, writer)
+            if not success:
+                return
 
-    message = sanitize_input(args.message) + '\n'
-    await submit_message(message, writer)
+        message = sanitize_input(args.message) + '\n'
+        await submit_message(message, writer)
+    except Exception as e:
+        logger.debug(f'{type(e)}: {e}')
+    finally:
+        writer.close()
 
 
 async def register(reader, writer):
@@ -80,6 +85,6 @@ def prepare_args():
 if __name__ == '__main__':
     args = prepare_args()
     try:
-        asyncio.run(server())
+        asyncio.run(send_to_chat())
     except KeyboardInterrupt:
         quit()

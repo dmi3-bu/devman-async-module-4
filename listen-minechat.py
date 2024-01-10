@@ -1,24 +1,34 @@
 import asyncio
+import logging
 from datetime import datetime
 
 import aiofiles
 import configargparse
 
 
-async def server():
-    reader, _ = await asyncio.open_connection(args.host, args.port)
+logger = logging.getLogger('listener')
+logging.basicConfig(level=logging.DEBUG)
 
-    async with aiofiles.open(args.file, "a", buffering=1) as output_file:
-        await log_line('Установлено соединение\n', output_file)
-        while True:
-            chat_line = await reader.readline()
-            await log_line(chat_line.decode(), output_file)
+
+async def listen_to_chat():
+    reader, writer = await asyncio.open_connection(args.host, args.port)
+
+    try:
+        async with aiofiles.open(args.file, "a", buffering=1) as output_file:
+            await log_line('Установлено соединение', output_file)
+            while True:
+                chat_line = await reader.readline()
+                await log_line(chat_line.decode().rstrip(), output_file)
+    except Exception as e:
+        logger.debug(f'{type(e)}: {e}')
+    finally:
+        writer.close()
 
 
 async def log_line(message, output_file):
     now = datetime.now().strftime("%d.%m.%y %H:%M")
     line = f"[{now}] {message}"
-    print(line, end="")
+    logger.info(line)
     await output_file.write(line)
 
 
@@ -36,6 +46,6 @@ def prepare_args():
 if __name__ == '__main__':
     args = prepare_args()
     try:
-        asyncio.run(server())
+        asyncio.run(listen_to_chat())
     except KeyboardInterrupt:
         quit()
